@@ -1,0 +1,31 @@
+# secrets and local state
+.env
+.env.*
+!.env.example
+data/website_kb.json
+data/*.tmp
+*.db
+*.sqlite*
+test_website_kb.json
+
+# local test pages and the throwaway test database (ALLOW_LOCAL_TEST_DB)
+static/test-chat/
+local-test.db
+
+# python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+venv/
+.venv/
+*.egg-info/
+
+# editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# logs and temp files
+*.log
+*.tmp

@@ -1,0 +1,57 @@
+# Caddy for the DhishaAI server. Caddy gets and renews the HTTPS certificates by itself.
+#
+#   dhishaai.com         WordPress (hosted wherever it is today) + the Disha Receptionist plugin
+#                        -> plugin setting "Disha API address" = https://disha.dhishaai.com
+#   admin.dhishaai.com   the DhishaAI Admin Portal (Node, port 4000): enquiries, students, fees, reports.
+#                        Everything Disha captures lands here as enquiries (LMS_URL in the API's .env).
+#   disha.dhishaai.com   the Disha API (FastAPI, port 8000):
+#       /console/*       data for the admin side (JSON + CSV, console token)
+#       /disha/          "Talk to Disha AI" voice page         /web/*          website chat (site key)
+#       /llm-websocket   Retell voice agent (WebSocket)        /webhooks/*     WhatsApp and Retell webhooks
+#
+# Install:  sudo cp deploy/Caddyfile /etc/caddy/Caddyfile && sudo systemctl reload caddy
+# DNS:      A records for admin and disha -> this server's IP
+
+(common) {
+	encode gzip zstd
+	header {
+		X-Robots-Tag "noindex, nofollow"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+}
+
+# ---- Admin portal (Node app; start it with TRUST_PROXY=1 SECURE_COOKIES=1 HSTS=1 so it knows it is behind HTTPS)
+admin.dhishaai.com {
+	import common
+	reverse_proxy 127.0.0.1:4000 {
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+	}
+	log {
+		output file /var/log/caddy/admin.dhishaai.com.log {
+			roll_size 20mb
+			roll_keep 5
+		}
+	}
+}
+
+# ---- Disha API
+disha.dhishaai.com {
+	import common
+	# WebSockets (Retell) and long model calls: give the backend time
+	reverse_proxy 127.0.0.1:8000 {
+		transport http {
+			read_timeout 180s
+			write_timeout 180s
+		}
+		header_up X-Forwarded-For {remote_host}
+	}
+	log {
+		output file /var/log/caddy/disha.dhishaai.com.log {
+			roll_size 20mb
+			roll_keep 5
+		}
+	}
+}

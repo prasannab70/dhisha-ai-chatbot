@@ -1,0 +1,25 @@
+# Disha project: secrets, local state and generated files stay out of git
+**/.env
+**/.env.*
+!**/.env.example
+**/data/website_kb.json
+*.db
+*.sqlite*
+disha-api/local-test.db
+
+# test pages (visitor test chat + counsellor side) and the WordPress plugin zip (built from the folder)
+disha-api/static/test-chat/
+wordpress/disha-receptionist.zip
+
+__pycache__/
+*.py[cod]
+.pytest_cache/
+venv/
+.venv/
+node_modules/
+*.log
+*.tmp
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

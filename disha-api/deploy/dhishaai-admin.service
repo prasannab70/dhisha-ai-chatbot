@@ -1,0 +1,28 @@
+# systemd unit for the DhishaAI Admin Portal (the Node app) on the same server as the Disha API.
+#   sudo cp deploy/dhishaai-admin.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now dhishaai-admin
+# Needs Node 22.5+ (node:sqlite):  curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - && sudo apt install -y nodejs
+[Unit]
+Description=DhishaAI Admin Portal (enquiries, students, fees)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=disha
+Group=disha
+WorkingDirectory=/opt/disha/dhishaai-admin
+Environment=PORT=4000
+Environment=TRUST_PROXY=1
+Environment=SECURE_COOKIES=1
+Environment=HSTS=1
+# DHISHAAI_SECRET encrypts the portal's stored mail password: generate once with `openssl rand -hex 32`
+EnvironmentFile=-/opt/disha/dhishaai-admin/.env
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

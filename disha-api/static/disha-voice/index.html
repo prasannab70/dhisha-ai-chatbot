@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Talk to Disha AI</title>
+<link rel="icon" href="faces/happy.png">
+<style>
+:root{
+  --navy:#083E5A; --orange:#EE7600; --blue:#29B6F6; --ink:#1B2B36; --muted:#6B7A85; --line:#E3E8EC; --bg:#FFFFFF;
+  --level:0;            /* 0..1, Disha's voice loudness, drives the orb */
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px 16px 72px;overflow-x:hidden}
+.stage{position:relative;width:min(440px,86vw);aspect-ratio:1/1;display:grid;place-items:center}
+
+/* colourful glow around Disha's bubble (brand orange + blue), breathing; grows with her voice */
+.orb{position:absolute;inset:2%;border-radius:50%;filter:blur(26px);opacity:.75;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(41,182,246,.85), transparent 55%),
+    radial-gradient(circle at 70% 65%, rgba(238,118,0,.75), transparent 55%),
+    radial-gradient(circle at 60% 25%, rgba(8,62,90,.45), transparent 60%),
+    radial-gradient(circle at 35% 75%, rgba(255,183,77,.7), transparent 55%);
+  transform:scale(calc(.86 + var(--level) * .22)) rotate(0deg);
+  animation:swirl 14s linear infinite, breathe 5s ease-in-out infinite;transition:transform .12s linear}
+.orb.b{inset:8%;opacity:.5;filter:blur(34px);animation-duration:19s,7s;animation-direction:reverse,normal}
+@keyframes swirl{to{rotate:360deg}}
+@keyframes breathe{0%,100%{scale:1}50%{scale:1.05}}
+body.idle .orb{opacity:.45}
+body.sleepy .orb{opacity:.25}
+
+/* Disha sits in a white glass bubble; the glow shows around its rim. Floating, lifts on hover */
+.face-wrap{position:relative;width:78%;aspect-ratio:1/1;border-radius:50%;background:#fff;display:grid;place-items:center;
+  cursor:pointer;animation:float 4.2s ease-in-out infinite;transition:transform .25s cubic-bezier(.2,.8,.2,1),box-shadow .25s;
+  box-shadow:0 0 0 1px rgba(255,255,255,.9),0 18px 40px rgba(8,62,90,.16),inset 0 -14px 34px rgba(41,182,246,.10),inset 0 10px 24px rgba(238,118,0,.06);
+  -webkit-tap-highlight-color:transparent}
+.face-wrap:hover{transform:translateY(-6px) scale(1.04);box-shadow:0 0 0 1px #fff,0 24px 52px rgba(8,62,90,.22),inset 0 -14px 34px rgba(41,182,246,.14)}
+body.talking .face-wrap{animation-duration:2.2s}
+@keyframes float{0%,100%{translate:0 0}50%{translate:0 -10px}}
+.face{width:82%;height:auto;display:block;user-select:none;-webkit-user-drag:none;translate:0 -3%}
+
+/* no on-screen wording: the status stays for screen readers only, the spoken words are not shown */
+.status{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.caption{display:none}
+
+.btn{margin-top:40px;display:inline-flex;align-items:center;gap:10px;padding:13px 26px;border-radius:12px;
+  border:1px solid var(--line);background:#fff;color:var(--ink);font:600 16px/1 inherit;font-family:inherit;cursor:pointer;
+  box-shadow:0 1px 2px rgba(16,24,40,.06);transition:box-shadow .2s,border-color .2s,transform .1s}
+.btn:hover{border-color:#C9D3DA;box-shadow:0 6px 18px rgba(8,62,90,.12)}
+.btn:active{transform:translateY(1px)}
+.btn:focus-visible{outline:3px solid rgba(238,118,0,.45);outline-offset:3px}
+.btn svg{width:20px;height:20px}
+.btn.end{color:#B42318;border-color:#F4C7C3}
+.btn.end .dot{width:9px;height:9px;border-radius:50%;background:#D92D20;animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.35}}
+.btn[disabled]{opacity:.6;cursor:progress}
+
+.foot{position:fixed;left:0;right:0;bottom:18px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;color:#98A2AB}
+.foot img{height:36px;width:auto;display:block}
+.hint{margin-top:10px;font-size:13px;color:#B42318;text-align:center;max-width:min(560px,92vw)}
+@media (prefers-reduced-motion:reduce){.orb,.face-wrap{animation:none}}
+</style>
+</head>
+<body class="idle">
+  <div class="stage" aria-hidden="true">
+    <div class="orb"></div><div class="orb b"></div>
+    <div class="face-wrap" id="faceWrap" title="Talk to Disha">
+      <img class="face" id="face" src="faces/happy.png" alt="">
+    </div>
+  </div>
+  <div class="status" id="status" role="status" aria-live="polite">Tap the button and say hello</div>
+  <div class="caption" id="caption" aria-live="polite"></div>
+  <button class="btn" id="btn" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M12 17v4"/><path d="M8 21h8"/></svg>
+    <span id="btnText">Talk to Disha AI</span>
+  </button>
+  <div class="hint" id="hint" hidden></div>
+  <div class="foot">Powered by <img src="logo.png" alt="DhishaAI Complete Analytics"></div>
+
+<script src="retell-sdk.js"></script>
+<script>
+// ---------- faces ----------
+const FACES = ["happy","excited","thinking","surprised","listening","talking","explaining","curious",
+               "encouraging","confused","sleepy","goodbye"];
+const cache = {};
+FACES.forEach(n => { const i = new Image(); i.src = `faces/${n}.png`; cache[n] = i; });
+const $ = id => document.getElementById(id);
+const face = $("face"), statusEl = $("status"), caption = $("caption"), btn = $("btn"), hint = $("hint");
+let shown = "happy";
+function show(name){ if (name !== shown && cache[name]) { face.src = cache[name].src; shown = name; } }
+
+// ---------- state ----------
+let client = null, inCall = false, agentTalking = false, connecting = false;
+let mood = "happy";            // what Disha "feels" between sentences
+let toneTimer = null, userTimer = null, idleTimer = null, flapTimer = null;
+let lastUser = "", lastAgent = "", turnText = "";
+const API = location.protocol === "file:" ? "http://localhost:8000" : "";
+
+function setStatus(t){ statusEl.textContent = t; }
+function setCaption(t){ caption.textContent = t || ""; caption.classList.toggle("on", !!t); }
+function setBody(cls){ document.body.className = cls; }
+function setMood(name, ms, then){
+  clearTimeout(toneTimer); mood = name; if (!agentTalking) show(name);
+  if (ms) toneTimer = setTimeout(() => { mood = then || (inCall ? "listening" : "happy"); if (!agentTalking) show(mood); }, ms);
+}
+
+// What Disha's sentence sounds like -> the expression she ends it with
+function toneOf(text){
+  const t = (text || "").toLowerCase();
+  if (/\?\s*$/.test(t.trim())) return "curious";                       // ends with a question: waiting for the caller
+  if (/\b(goodbye|bye|have a (wonderful|great|nice|good) day)\b/.test(t)) return "goodbye";
+  if (/\b(sorry|didn'?t (quite )?(catch|get)|trouble|not sure|couldn'?t|isn'?t mentioned)\b/.test(t)) return "confused";
+  if (/\b(confirmed|booked|done|great|wonderful|perfect|congrat|welcome|awesome|excellent)\b/.test(t)) return "encouraging";
+  if (/!\s*$/.test(t.trim())) return "excited";
+  return "listening";
+}
+
+// ---------- idle behaviour: hover = excited, a minute alone = sleepy ----------
+function resetIdle(){
+  clearTimeout(idleTimer);
+  if (document.body.classList.contains("sleepy")) { setBody("idle"); show("surprised"); setTimeout(() => !inCall && show("happy"), 700); }
+  idleTimer = setTimeout(() => { if (!inCall && !connecting) { setBody("sleepy"); show("sleepy"); setStatus("Disha is resting. Tap to wake her up"); } }, 60000);
+}
+["mousemove","keydown","touchstart","scroll"].forEach(e => addEventListener(e, resetIdle, {passive:true}));
+$("faceWrap").addEventListener("mouseenter", () => { if (!inCall && !connecting && shown !== "sleepy") show("excited"); });
+$("faceWrap").addEventListener("mouseleave", () => { if (!inCall && !connecting && shown === "excited") show("happy"); });
+$("faceWrap").addEventListener("click", () => { if (!inCall && !connecting) start(); });
+resetIdle();
+
+// ---------- mouth + orb, driven by Disha's voice ----------
+function volume(){
+  try { const v = client && client.analyzerComponent && client.analyzerComponent.calculateVolume(); if (typeof v === "number") return v; } catch (_) {}
+  return agentTalking ? 0.15 + 0.15 * Math.random() : 0;
+}
+let lastFlap = 0, open = false;
+function loop(ts){
+  const v = inCall ? volume() : 0;
+  document.documentElement.style.setProperty("--level", Math.min(1, v * 4).toFixed(3));
+  if (agentTalking && ts - lastFlap > 110) {
+    lastFlap = ts;
+    const loud = v > 0.02;
+    open = loud ? !open || v > 0.12 : false;
+    const long = turnText.length > 120;                     // long answers look like explaining
+    const closed = mood === "encouraging" ? "encouraging" : (long ? "explaining" : "listening");
+    show(open ? (long ? "explaining" : "talking") : closed);
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// ---------- call ----------
+async function start(){
+  if (connecting || inCall) return;
+  hint.hidden = true; connecting = true; btn.disabled = true; $("btnText").textContent = "Connecting…";
+  setBody(""); show("thinking"); setStatus("Connecting to Disha…"); setCaption("");
+  try {
+    if (!window.RetellWebClient) throw new Error("The voice library did not load. Refresh the page.");
+    const r = await fetch(API + "/voice/web-call", {method:"POST"});
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.detail || `Could not start the call (${r.status})`);
+    client = new window.RetellWebClient();
+    wire(client);
+    await client.startCall({ accessToken: data.access_token });
+  } catch (e) {
+    fail(e && e.message ? e.message : String(e));
+  }
+}
+function stop(){ try { client && client.stopCall(); } catch (_) {} ended(); }
+
+function wire(c){
+  c.on("call_started", () => {
+    connecting = false; inCall = true; btn.disabled = false; btn.classList.add("end");
+    btn.innerHTML = '<span class="dot"></span><span id="btnText">End call</span>';
+    setBody("talking"); setStatus("Connected. Disha is saying hello…"); setMood("excited", 1200, "listening");
+  });
+  c.on("agent_start_talking", () => {
+    agentTalking = true; turnText = ""; clearTimeout(userTimer); setStatus("Disha is speaking…");
+  });
+  c.on("agent_stop_talking", () => {
+    agentTalking = false; setStatus("Listening… go ahead and speak");
+    const tone = toneOf(turnText || lastAgent);
+    setMood(tone === "listening" ? "listening" : tone, tone === "listening" ? 0 : 1500, "listening");
+  });
+  c.on("update", u => {
+    const tr = (u && u.transcript) || [];
+    const last = tr[tr.length - 1];
+    if (!last) return;
+    if (last.role === "agent") {
+      turnText = last.content || ""; lastAgent = turnText; setCaption(turnText);
+      if (agentTalking && /\b(great|wonderful|perfect|confirmed|booked)\b/i.test(turnText)) mood = "encouraging";
+    } else if (last.role === "user" && last.content !== lastUser) {
+      lastUser = last.content;
+      if (!agentTalking) {
+        show("listening"); setStatus("Listening…"); setCaption("");
+        clearTimeout(userTimer);                     // a short pause after the caller stops = Disha is thinking
+        userTimer = setTimeout(() => { if (!agentTalking && inCall) { show("thinking"); setStatus("Disha is thinking…"); } }, 900);
+      }
+    }
+  });
+  c.on("call_ended", ended);
+  c.on("error", err => { fail((err && (err.message || err)) || "The call was interrupted."); try { c.stopCall(); } catch (_) {} });
+}
+
+function ended(){
+  const wasInCall = inCall;
+  inCall = false; connecting = false; agentTalking = false; client = null; clearTimeout(userTimer);
+  btn.disabled = false; btn.classList.remove("end");
+  btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M12 17v4"/><path d="M8 21h8"/></svg><span id="btnText">Talk to Disha AI</span>';
+  setBody("idle");
+  if (wasInCall) { show("goodbye"); setStatus("Call ended. Thank you for talking to Disha!"); setTimeout(() => { if (!inCall) { show("happy"); setStatus("Tap the button and say hello"); setCaption(""); } }, 2600); }
+  resetIdle();
+}
+function fail(msg){
+  ended(); show("confused"); setStatus("Something went wrong");
+  hint.textContent = msg; hint.hidden = false;
+  setTimeout(() => { if (!inCall) show("happy"); }, 3500);
+}
+
+btn.addEventListener("click", () => { if (inCall) stop(); else start(); });
+
+// Setup check: tell the person what is missing instead of failing on click
+fetch(API + "/voice/config").then(r => r.json()).then(c => {
+  if (!c.ready) { hint.textContent = "Voice is not set up yet: add RETELL_API_KEY and RETELL_AGENT_ID to disha-api\\.env and restart the backend."; hint.hidden = false; }
+}).catch(() => {
+  hint.textContent = "Cannot reach the Disha backend. Start it (uvicorn app.main:app) and open http://localhost:8000/disha/";
+  hint.hidden = false;
+});
+</script>
+</body>
+</html>

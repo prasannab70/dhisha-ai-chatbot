@@ -1,0 +1,26 @@
+# systemd unit: keeps the Disha backend running and restarts it on reboot or crash.
+#   sudo cp deploy/disha-api.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now disha-api
+#   sudo journalctl -u disha-api -f        (live log)
+[Unit]
+Description=Disha Front Desk API (DhishaAI)
+After=network-online.target mysql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=disha
+Group=disha
+WorkingDirectory=/opt/disha/disha-api
+EnvironmentFile=/opt/disha/disha-api/.env
+ExecStart=/opt/disha/disha-api/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --proxy-headers --forwarded-allow-ips=127.0.0.1 --workers 1
+Restart=always
+RestartSec=5
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/opt/disha/disha-api/data
+
+[Install]
+WantedBy=multi-user.target
